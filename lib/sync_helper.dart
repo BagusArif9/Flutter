@@ -1,26 +1,34 @@
-import 'package:supabase/supabase.dart';
-import 'database_helper.dart';
-import 'app_config.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class SyncHelper {
-  final SupabaseClient supabaseClient = SupabaseClient(AppConfig.supabaseUrl, AppConfig.supabaseAnonKey);
+  final String apiUrl;
+  final String apiKey;
+
+  SyncHelper({required this.apiUrl, required this.apiKey});
 
   Future<void> syncData() async {
-    // Ambil data dari database lokal
-    List<Map<String, dynamic>> localData = await DatabaseHelper().getTodoItems();
+    // Your data synchronization logic
+    try {
+      final response = await http.post(
+        Uri.parse('$apiUrl/your-endpoint'), // Replace with your endpoint
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode(<String, String>{
+          'key': 'value', // Replace with your data
+        }),
+      );
 
-    // Kirim data ke Supabase
-    final response = await supabaseClient
-        .from('todos')
-        .upsert(localData)
-        .execute();
-
-    if (response.error == null) {
-      // Sinkronisasi berhasil
-      print('Sync successful');
-    } else {
-      // Gagal sinkronisasi
-      throw Exception('Failed to sync data: ${response.error!.message}');
+      if (response.statusCode == 200) {
+        // Success
+        print('Data synchronized successfully');
+      } else {
+        throw Exception('Failed to send data to server: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to send data to server: $e');
     }
   }
 }
